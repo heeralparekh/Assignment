@@ -1,0 +1,101 @@
+---
+title: "Assessment 1"
+author: "Heeral s4653155"
+date: '2022-03-03'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# RMarkdown editing 
+
+*Interactive documents* are a new way to build Shiny apps. An interactive document is an **R Markdown** file that contains Shiny widgets and outputs. You write the report in markdown, and then launch it as an app with the click of a button. **R Markdown** is a file format for making dynamic documents with R. An **R Markdown** document is written in markdown (an easy-to-write plain text format) and contains chunks of embedded R code. 
+To know more [Click here](https://rmarkdown.rstudio.com/lesson-8.htm)
+
+```{r}
+#install.packages("tidyverse")
+library(tidyverse)
+
+fastfood <- read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-09-04/fastfood_calories.csv")
+
+head(fastfood,10)
+
+#install.packages("knitr")
+library(knitr)
+
+kable(fastfood[1:10,])
+
+kable(fastfood[1:10,1:5])
+```
+
+## Food Items with more than 1000 calories
+
+```{r}
+
+fastfood %>%
+  filter(calories>1000)
+
+```
+
+## Do not eat this
+Arranging observations with more than 40 in total_fat and more than 80 in total_carb in the descending order and save them to a new variable (dataset) called `dont_eat_this'
+
+```{r}
+dont_eat_this <- fastfood %>%
+  filter(total_fat>40) %>%
+  arrange(desc(total_fat))
+
+
+dont_eat_this <- dont_eat_this %>%
+  filter(total_carb>80)%>%
+  arrange(desc(total_carb))
+```
+
+## Categorising food items
+Showing details of food items which are heavy (>500 calories), low (<250 calories) and average(between 250 to 500 calories)
+
+```{r}
+fastfood <- fastfood %>%
+  mutate(heavy_food = case_when(calories >= 500 ~ "heavy", calories < 250 ~ "low", T ~ "average"))
+ 
+fastfood %>%
+  count(heavy_food)
+```
+
+## Different types of Variables
+
+```{r}
+#install.packages("skimr")
+library(skimr)
+
+fastfood %>% skim()
+```
+
+## Number of dishes from each restaurant
+
+```{r}
+fastfood %>%
+  count(restaurant) %>%
+  arrange()
+```
+
+## Items in the menu
+
+```{r}
+fastfood %>%
+  count(item)
+```
+
+## Average caleroies for each restaurant
+
+```{r}
+fastfood %>%
+  group_by(restaurant) %>%
+  summarise(mean_calories = mean(calories)) %>%
+  ungroup() 
+```
+
+
+
