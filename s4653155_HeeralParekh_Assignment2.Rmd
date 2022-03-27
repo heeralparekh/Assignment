@@ -1,0 +1,306 @@
+---
+title: "Assignment2"
+author: 'Heeral s4653155'
+date: '2022-03-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## *Heeral* **s4653155**
+________________________________________________________________________________________________________________________________________________
+
+# Assignment 2 
+________________________________________________________________________________________________________________________________________________
+
+### Loading the packages and dataset
+
+```{r}
+
+#install.package("tidyverse")
+library(tidyverse)
+
+
+thanksgiving <- read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-11-20/thanksgiving_meals.csv")
+
+```
+
+
+### 1. Display the first 10 rows of the dataset using 'kable()' function. 
+
+```{r}
+
+#install.package("knitr")
+library(knitr)
+
+kable(thanksgiving[1:10,])
+
+```
+
+
+### 2. Using 'skim()' display the summary of variables. 
+
+```{r}
+
+#install.package("skimr")
+library(skimr)
+
+thanksgiving %>% skim()
+
+```
+
+
+### Predicting family income :
+
+Family income can be predicted with help of cranberry variable. Homemade cranberry sauce could be quite expensive as compared to that made with canned cranberry. Hence people with lower income will prefer canned cranberry. Also we can use other pies, desserts and sides used to determine income as people with lower income will prefer inexpensive food items and vice versa. All the required variables are "character" type and are correct as per the data. We can convert family income to "factor" as it has character and numeric value.
+
+
+### Predicting a community type or US_region:
+
+To predict a community type or us region we can use main dishes (or food items) and family income. Mainly people from a particular region prefer their own cuisine during festivals hence the type of main dish (or sides, pies or desserts) can identify the us region they belong to. Where as, people from rural region might have less income as compared to those in urban region. So, family income levels can help in identifying the community type. All the required variables are "character" type and are correct as per the data. We can convert family income to "factor" as it has character and numeric value.  
+
+```{r}
+
+class(thanksgiving$family_income)
+
+```
+
+
+### 3. Use 'fct_reorder' and 'parse_number' functions to create a factor variable 'family_income'
+
+```{r}
+
+thanksgiving <- thanksgiving %>%
+  mutate(family_income = fct_reorder(family_income, parse_number(family_income)))
+
+class(thanksgiving$family_income)
+
+```
+
+### 4. What is the number of people who celebrate? 
+
+(980 out of 1058 celebrate) 
+
+```{r}
+
+thanksgiving %>%
+  count(celebrate)
+
+```
+
+### 5. A new dataset named "dishes_and_prep" showing methods of preparation of each main dish served. 
+
+
+```{r}
+
+dishes_and_prep <- thanksgiving %>%
+  group_by(main_dish, main_dish_other, main_prep, main_prep_other) %>%
+  summarise() %>%
+  ungroup()
+
+kable(dishes_and_prep)
+
+```
+
+### 6. Create 3 different data viz showing insights for main dish served and the method. Provide your own legend and use themes.
+
+#### Figure 1
+
+```{r}
+
+ggplot(thanksgiving, aes(main_dish, main_prep)) +
+  geom_count() + theme_classic() +
+  labs(x = "Dishes", y = "Preparation methods", caption = "Figure 1") +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+The above graph with classic theme shows different dishes are prepared using several methods. It can be seen that Turkey is generally preferred roasted or baked. Very few dishes are fried and Turducken is always roasted.
+
+#### Figure 2
+
+```{r}
+
+thanksgiving %>%
+  filter(!gravy == "NA") %>%
+  ggplot(aes(gravy, main_dish, color = gravy)) +
+  geom_jitter() + theme_bw() +
+  labs(x = "Dishes", y = "Gravy", caption = "Figure 2")
+
+```
+
+The above graph in black and white theme shows that all the dishes can be prepared with or without gravy. But apparently we can say that people prefer to make their dishes with gravy. This graph excludes NA responses in Gravy.
+
+#### Figure 3
+
+```{r}
+
+thanksgiving %>%
+  filter(!stuffing == "NA") %>%
+  ggplot(aes(main_dish, main_prep, color = stuffing)) +
+  geom_jitter() + theme_dark() +
+  facet_wrap(~ stuffing) +
+  labs(x = "Dishes", y = "Preparation methods", caption = "Figure 3")+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+The above dark theme graphs show variety of dishes cooked with different stuffing. We can see that more dishes are prepared with bread based stuffing as compared to rice based or others. Turducken rarely has any stuffing. However, Turkey is rarely prepared without stuffing and most preferred stuffing is bread based.
+
+
+### 7.How many use cranberry sauce? How many use gravy?
+
+828 out of 1058 used cranberry sauce.(25 used other, 502 canned and 301 homemade) 
+
+```{r}
+
+thanksgiving %>%
+  count(cranberry)
+
+```
+
+892 out of 1058 used gravy.
+
+```{r}
+
+thanksgiving %>%
+  count(gravy)
+
+```
+
+
+### 8-9. Distribution of those who celebrate across income ranges.
+
+```{r}
+
+thanksgiving %>%
+  ggplot(aes(celebrate,family_income)) + theme_grey() +
+  geom_count() 
+
+```
+
+From the graph we can see that majority of the families (who participated in the poll) celebrate thanksgiving. Family income from the range of $25000 to $124999 has the most number of families celebrating thanksgiving. Even, families who did not prefer to disclose their income tend to celebrate. Among all the family income groups, the families celebrating were significantly high as compared to those who did not celebrate. All the participants stating NA in family income celebrated thanksgiving.
+
+### 10. Use the following code to create a new data set
+
+```{r}
+
+thanksgiving_new <- thanksgiving %>%
+  select(id, starts_with("side"), starts_with("pie"), starts_with("dessert")) %>%
+  select(-side15, -pie13, -dessert12) %>%
+  gather(type, value, -id) %>%
+  filter(!is.na(value),
+         !value %in% c("None", "Other (please specify)")) %>%
+  mutate(type = str_remove(type, "\\d+"))
+
+kable(thanksgiving_new)
+
+```
+
+The above code created a new dataset 'thanksgiving_new'. This code combines all the type of sides, pies and desserts chosen by the different families (ids) in 3 columns. The new data set is formed by creating two new columns named "type" and "value". The 'type' column has combined all the sides (side 1 to side15), all the pies (pie1 to pie13) and all the desserts (dessert1 to dessert12). The 'value' column describes the name of sides, pies and desserts preferred by each id. Hence we can now view a dataset of just 3 columns with all the preferred dishes. To get details of a single id we can filter the data as shown below.
+
+```{r}
+
+thanksgiving_new %>%
+ filter(id ==  4335894916)
+
+```
+
+
+### 11-12. Intall package 'widyr' and use 'pairwise_cor()' function
+https://www.rdocumentation.org/packages/widyr/versions/0.1.3/topics/pairwise_cor. 
+
+The pairwise cor() function calculates the correlation between the items. Here we are calculating correlation between the values chosen by each id. The result creates two columns- item 1 and item 2 and calculates the correlation of both these items. This will calculate interdependency of one dish with all the other dishes.The function sort is rearranging the correlation in descending order.
+
+```{r}
+
+#install.packages("widyr")
+library(widyr)
+
+thanksgiving_new%>%
+  pairwise_cor(value, id, sort = TRUE)
+
+```
+
+
+The final outcome shows the group of items with the highest correlation first and the least correlated items at last. Here, it can be seen that Cookies and Brownies have the highest correlation among all, meaning, many families who choose cookies have also chosen brownies, similarly the one who choose Sweet potato have also chosen Macroni and cheese.
+
+
+### 13. Data modelling to predict family income:
+
+Using 'lm()' or 'randomForest()' function to build a model that predicts a family income based on data in the dataset. Comparing the 3 models using different set of input variables. Using different number of variables. Further, explaining choice of variables.
+
+Firstly, we will identify the output variable. If the output variable is 'numeric' we use 'lm' function and if it is 'character'/'factor' we use random forest function. Here, in the thanksgiving dataset, family income is 'factor' variable (converted in point 3 above) hence we will use random forest function for modelling.
+
+```{r}
+
+class(thanksgiving$family_income)
+
+#install.packages("randomForest")
+library(randomForest)
+
+```
+
+
+In the model 1 (rf1) we are trying to predict family income with the help of three variables: age, community type and gender.
+
+```{r}
+
+rf1 <- randomForest(family_income ~ age + community_type + gender, data = thanksgiving, na.action=na.omit)
+
+print(rf1)
+
+```
+
+
+In the model 2 (rf2) we are trying to predict family income with the help of four variables: age, community type, gender and friendsgiving
+
+```{r}
+
+rf2 <- randomForest(family_income ~ age + community_type + gender + friendsgiving, data = thanksgiving, na.action=na.omit)
+
+print(rf2)
+
+```
+
+
+In the model 3 (rf3) we are trying to predict family income with the help of five variables: age, community type, gender, friendsgiving and us region
+
+```{r}
+
+rf3 <- randomForest(family_income ~ age + community_type + gender + friendsgiving + us_region, data = thanksgiving, na.action=na.omit)
+
+print(rf3)
+
+```
+
+
+### Reason for choosing the variable:
+
+Age: Generally, people as they grow older, tend to earn more money as they get more experience and knowledge with the passage of time. 
+
+Community type and us region: People from urban area tend to earn more as compared to rural area mainly because developed regions provide more employment oppurtunities and infrastructure than the developing or under developed regions.
+
+Gender: Depending on the locality, there can be possibility that there exists gender pay gaps (males have higher income then women)
+
+Friendsgiving: People with less income might celebrate only with the family (less people) and hence do not have friendsgiving and vice versa.
+
+
+### Explaining which model is best.
+
+Model 1 and model 2 are providing almost similar error rates while model 3 is providing a higher error rate as compared to the other two models. Hence in comparision, Model 1 or Model 2 are better than Model 3. But The error rates of all the models are above 80% and hence all the models are not recommended as they won't be able to predict family income accurately.
+
+
+
+
+
+
+
+
+
+
+
+
+
