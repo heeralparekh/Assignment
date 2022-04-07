@@ -1,0 +1,274 @@
+---
+title: "Group 4 Assignment"
+author: "Heeral - Abdul - Sushmita"
+date: '2022-04-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+# *Cocktails in Town!*
+
+Sydney is famous tourist attraction and it has some of the best hangout places in the world. We are planning to take our cocktail business- 'Cocktails in Town' to next level. We have a data set regarding several types of cocktails and we will be using the data to explore ways to attract more people to our bar and making their cocktail adventure memorable.
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+##### Loading the packages and dataset
+
+```{r}
+
+#install.packages(tidyverse)
+library(tidyverse)
+
+#install.packages(tidymodels)
+library(tidymodels)
+
+#install.packages(skimr)
+library(skimr)
+
+
+cocktails <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-05-26/cocktails.csv')
+
+```
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+### **Main business target: Increasing consumers by becoming an attraction in the city.**
+
+We collected the data set which provided us the information numerous different cocktails, their types, ingredients and how they should be served. We would like to serve drinks for every visitor at the counter. Hence we were keen to know how many different types of cocktails we have on our list that can be served so that we have drinks for everyone.
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Here's the list:
+
+```{r}
+
+cocktails %>%
+  count(drink)
+
+```
+
+
+#### Cocktails for all.
+
+To attract more people to our cocktail bar we had to have an approach that makes their experience at the bar a memorable one. The basic business idea is to focus on the consumer's need. With changing times, people are adopting different cuisine styles and are interested in exploring new varieties. Today, there is an increasing trend of vegan and vegetarian food options as it is harmless to environment. So, serving all types of dishes is beneficial for restaurants.  Similarly, we would like to know if we have all categories of drinks i.e. alcoholic and non alcoholic ones. Hence, we were keen to know how many different types of cocktails we have on our list that can be served so that we have drinks for everyone. 
+
+Below given graph shows the trend of types of drink and category.
+
+```{r}
+
+cocktails %>%
+  count(alcoholic) %>%
+  ggplot(aes(alcoholic, n,  fill= "orange"))+
+  geom_col()+
+  labs(x = "Type of Drink", y = "No. of Drinks", title = "Figure showing Type of drinks")
+  
+```
+
+
+This graph shows that along with alcoholic beverages, we have options for non-alcoholic beverages and few drinks with an option to have it with alcohol or without alcohol.
+
+#### Ingredients
+
+For serving this gigantic amount of drinks, we definitely have to look for the ingredients for all the drinks we need to serve. It would not be beneficial to serve those drinks that have numerous ingredients but are quite the least preferred choice of customers. Apart from it, after making a request for a drink, all a customer wants is that he is served as quick as possible. So it is crucial for us to know number of ingredients required in different cocktails.
+
+```{r}
+
+cocktails %>%
+  filter(!alcoholic == "NA") %>%
+  ggplot(aes( category,alcoholic,color=ingredient_number)) +
+  geom_jitter() +
+  facet_wrap(~ ingredient_number) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  labs(x = "Category", y = "Alcoholic and Non Alcoholic", title = "Figure showing number of ingredients in different type of drinks")
+
+```
+
+It can be seen that very few drinks involve  7 to 12 ingredients. Majority of the drinks could be prepared with around 4 to 5 ingredients. The less ingredients, more quickly it could be prepared.
+
+Keeping the main target on our mind, we further would like to enhance the customer service by serving them quickly which would indirectly lead to customer satisfaction and leading to more visitors.
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+### *How to attract more consumers?*
+
+### **1. Presenting well** 
+
+Just providing a cocktail is not enough. We have to make a cocktail presentable. Cocktails have their own vibe and their own glasses! We would like our staff to know what glass should they use to serve a particular cocktail. So we design a model which help us identify the glass type based on the cocktail details.
+
+#### Data Modelling: 1
+
+Split the data set
+
+```{r}
+
+cocktails_split <- initial_split(cocktails)
+
+cocktails_train <- training(cocktails_split)
+
+cocktails_test <- testing(cocktails_split)
+
+```
+
+Recipe
+
+```{r}
+
+cocktails_recipe <- recipe(glass ~ alcoholic + category + ingredient_number, data=cocktails_train)
+
+summary(cocktails_recipe)
+
+```
+
+Remove outliers
+
+```{r}
+
+cocktails_recipe <- cocktails_recipe%>%
+  step_center(all_numeric(), -all_outcomes())%>%
+  step_scale(all_numeric(), -all_outcomes())%>%
+  step_corr(all_numeric())
+
+```
+
+Preparation
+
+```{r}
+
+cocktails_prep <- prep(cocktails_recipe, training = cocktails_train)
+
+```
+
+Bake
+
+```{r}
+
+cocktails_bake <- bake(cocktails_prep, cocktails_train)
+
+```
+
+#### Classification Model
+
+Now, we will use the cocktails_bake data set with random forest. We would like to know the glass to be used to serve the cocktails. Hence the output here is "glass" and as it is  character variable, we will use random forest. We can also convert all the variables to factor in the data set. Here, inputs will be 'alcoholic' and 'category'.
+
+```{r}
+#install.packages(randomForest)
+library(randomForest)
+
+cocktails_bake <- cocktails_bake %>%
+  mutate_if(is.character, factor)
+
+
+cocktails_bake <- droplevels(cocktails_bake)
+
+rf_glass1 <- randomForest(glass ~ alcoholic + category, data = cocktails_bake, na.action=na.omit)
+
+print (rf_glass1)
+
+```
+
+We can see that the estimated error rate of this model is quite high (almost above 60%). This shows that this model does not provide accurate result. But we can definitely try new combination of inputs that might result to lower error rate.
+Now trying to use all three inputs- alcoholic, category and ingredient_number.
+
+```{r}
+
+rf_glass2 <- randomForest(glass ~ . , data = cocktails_bake, na.action=na.omit)
+
+print (rf_glass2)
+
+```
+
+Even this model shows a higher error rate. Therefore, we can say that both the models here cannot predict the result accurately.
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+### **2. Helping them choose their drink.**
+
+Many people love to explore different bars and restaurants but one of the common questions they have is 'What should they order?' It is not necessary that everyone has a great knowledge about cocktails. So majority of the crowd just order drinks they have already tried it or something that is similar to what they have tried. 
+
+To enhance their experience and giving them oppurtunity to try new drinks, we are trying to make a model which can give the 'drink id' based on the consumer's selection of type of drink and ingredients. It is easier for the people to share what ingredients they like or would like to try and we would be able to serve them as per their needs. If we do not have a cocktail with all the ingredients the customer is requesting we could always make a new one!
+
+#### Data Modelling: 2
+
+Pre-processing
+
+```{r}
+
+cocktails_recipe2 <- recipe(id_drink ~ alcoholic + category + ingredient, data=cocktails_train)
+
+summary(cocktails_recipe2)
+
+```
+
+Remove outliers
+
+```{r}
+
+cocktails_recipe2 <- cocktails_recipe2%>%
+  step_center(all_numeric(), -all_outcomes())%>%
+  step_scale(all_numeric(), -all_outcomes())%>%
+  step_corr(all_numeric())
+
+```
+
+Preparation
+
+```{r}
+
+cocktails_prep2 <- prep(cocktails_recipe2, training = cocktails_train)
+
+```
+
+Bake
+
+```{r}
+
+cocktails_bake2 <- bake(cocktails_prep2, cocktails_train)
+
+```
+
+####  Linear modelling
+
+With help of dataset cocktails_bake2, we will try to predict 'drink id' only with 2 input variables 'alcoholic' and 'ingredients'. Customer can provide their choice of ingredient and if their preferred type and we will serve them a drink accordingly. As drink id is a numeric variable we will use linear modelling.
+
+```{r}
+
+lm_drink1 <- lm(id_drink ~ alcoholic + ingredient, data = cocktails_bake2, na.action=na.omit)
+
+summary(lm_drink1)
+
+```
+
+We can also use all the input variables alcoholic, category and ingredients to predict the output drink id.
+
+```{r}
+
+lm_drink2 <- lm(id_drink ~ . , data = cocktails_bake2, na.action=na.omit)
+
+summary(lm_drink2)
+
+```
+
+We can evaluate the models on basis of several factors and one of them is R square value. The R square value of lm_drink2 in near to zero as compared to the one of lm_drink1. This means lm_drink2 can predict the drink id more accurately as compared to lm_drink1. Further, more number of astrics, means better the result.
+
+With the help of this model we can help the confused consumers to choose their drink based on the ingredients they like. This will help them explore new combination of ingredients and encourage them to openly try new cocktails every time they visit as they are already familiar with the ingredients. 
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+### Conclusion
+
+These strategies can help in expanding the business to a new level. Profit maximization along with customer satisfaction is the key to success. And we cannot deny the fact that exploring different cocktails is an adventure in its own!
+
+*Cheers!*
+
+
+
+
+
+
+
+
